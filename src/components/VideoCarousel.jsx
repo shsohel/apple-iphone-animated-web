@@ -22,6 +22,11 @@ const VideoCarousel = () => {
   const { isEnd, startPlay, videoId, isLastVideo, isPlaying } = video;
 
   useGSAP(() => {
+    gsap.to("#slider", {
+      transform: `translateX(${-100 * videoId}%)`,
+      duration: 2,
+      ease: "power2.inOut",
+    });
     gsap.to("#video", {
       scrollTrigger: {
         trigger: "#video",
@@ -62,10 +67,49 @@ const VideoCarousel = () => {
           const progress = Math.ceil(ame.progress() * 100);
           if (progress !== currentProgress) {
             currentProgress = progress;
+
+            gsap.to(videoDivRef.current[videoId], {
+              width:
+                window.innerWidth < 760
+                  ? "10vw"
+                  : window.innerWidth < 1200
+                  ? "10vw"
+                  : "4vw",
+            });
+
+            gsap.to(span[videoId], {
+              width: `${currentProgress}%`,
+              backgroundColor: "white",
+            });
           }
         },
-        onComplete: () => {},
+        onComplete: () => {
+          if (isPlaying) {
+            gsap.to(videoDivRef.current[videoId], {
+              width: "12px",
+            });
+            gsap.to(span[videoId], {
+              backgroundColor: "#afafaf",
+            });
+          }
+        },
       });
+      if (videoId === 0) {
+        ame.restart();
+      }
+      const ameUpdate = () => {
+        ame.progress(
+          videoRef.current[videoId].currentTime /
+            highlightsSlides[videoId].videoDuration,
+        );
+      };
+
+      if (isPlaying) {
+        gsap.ticker.add(ameUpdate);
+      } else {
+        //
+        gsap.ticker.remove(ameUpdate);
+      }
     }
 
     return () => {};
@@ -99,6 +143,12 @@ const VideoCarousel = () => {
           isPlaying: !pre.isPlaying,
         }));
         break;
+      case "pause":
+        setVideo((pre) => ({
+          ...pre,
+          isPlaying: !pre.isPlaying,
+        }));
+        break;
       default:
         return video;
     }
@@ -117,7 +167,15 @@ const VideoCarousel = () => {
                     playsInline={true}
                     preload="auto"
                     muted
+                    className={`${
+                      video.id === 2 && "translate-x-44"
+                    } pointer-events-none`}
                     ref={(el) => (videoRef.current[i] = el)}
+                    onEnded={() =>
+                      i !== 3
+                        ? handleProcess("video-end", i)
+                        : handleProcess("video-last")
+                    }
                     onPlay={() => {
                       setVideo((preVideo) => ({
                         ...preVideo,
